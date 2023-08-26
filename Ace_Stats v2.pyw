@@ -212,6 +212,20 @@ result_to_swing = {
     'Strikeout swinging': 'Swing no contact'
 }
 df['Swing'] = df['Result'].map(result_to_swing)
+result_of_ab = {
+    'Ball': 'nothing',
+    'Walk': 'free base',
+    'HBP': 'free base',
+    'Strike looking': 'nothing',
+    'Strikeout looking': 'not free base',
+    'Foul Ball': 'nothing',  # Note: Removed the extra double quotes around 'Foul Ball'
+    'Hit': 'not free base',
+    'BIP Out': 'not free base',
+    'Strike swing & miss': 'nothing',
+    'Drop 3rd & Safe': 'not free base',
+    'Strikeout swinging': 'not free base'
+}
+df['Free Bases'] = df['Result'].map(result_of_ab)
 
 # Assign this to analysis sheet and include extra columns
 analysis_sheet = workbook['pitch breakdown']
@@ -225,15 +239,68 @@ for index, row in df.iterrows():
 ####include extra column names in the right index
 analysis_sheet.cell(row=1, column=7, value='Strike or Ball')
 analysis_sheet.cell(row=1, column=8, value='Swing')
+analysis_sheet.cell(row=1, column=9, value='Free Bases')
 
 # Save the updated workbook
 workbook.save(selected_file_path)
 
-# ################# Create a by player sheet #####################
+# ################# Create a by player sheet with their stats #####################
 workbook = openpyxl.load_workbook(selected_file_path)
 sheet = workbook['pitch breakdown']
 df2 = pd.DataFrame(sheet.values)
+df2.columns = df2.iloc[0]
 
+print(df2)
+
+# avg FB Velo
+fb_df = df2[['Pitcher', 'Velo', 'Pitch Type']]
+fb_df = fb_df[fb_df['Pitch Type'] == 'FB']
+fb_df['Velo'] = fb_df['Velo'].astype('Int64')
+avg_fb = fb_df.groupby('Pitcher')['Velo'].mean().reset_index().round(1)
+avg_fb = avg_fb.rename(columns={'Velo': 'avg FB'})
+
+# Top FB Velo
+top_fb = fb_df.groupby('Pitcher')['Velo'].max().reset_index().round(1)
+top_fb = top_fb.rename(columns={'Velo': 'Top FB'})
+
+# Strike % 
+# Filter 'df' to only include rows where 'Pitch result' is 'Strike'
+strike_df = df2[df2['Strike or Ball'] == 'Strike']
+# Group the filtered DataFrame by 'Pitcher' and calculate strike percentage
+strike_percentage = (strike_df.groupby('Pitcher')['Strike or Ball'].count() / df2.groupby('Pitcher')['Strike or Ball'].count() * 100).round(1)
+strike_percentage = strike_percentage.fillna(0)
+strike_percentage = strike_percentage.reset_index().rename(columns={'Strike or Ball': 'Strike Percentage'})
+strike_percentage = strike_percentage[strike_percentage['Pitcher'] != 'Pitcher']
+strike_percentage['Strike Percentage'] = strike_percentage['Strike Percentage'].apply(lambda x: f"{x}%")
+print(strike_percentage)
+
+# FB CSW % & Offspeed CSW % 
+
+# Total CSW %
+
+# Free base % 
+
+# Reformat df2 to be just unique Pitchers and then join their data back in 
+df2 = df2[['Pitcher']]
+df2 = df2.drop_duplicates()
+df2 = df2.merge(avg_fb, how='left', on='Pitcher')
+df2 = df2.merge(top_fb, how='left', on='Pitcher')
+df2 = df2.merge(strike_percentage, how='left', on='Pitcher')
+
+print(df2)
+
+# Setup new page on excel file
+# Assign this to analysis sheet and include extra columns
+pitcher_sheet = workbook['pitcher breakdown']
+
+# Clear and load it back into Sheet1
+pitcher_sheet.delete_rows(pitcher_sheet.min_row, pitcher_sheet.max_row)
+# Write the manipulated data from the DataFrame to the analysis sheet
+for index, row in df2.iterrows():
+    pitcher_sheet.append(row.tolist())
+
+####include extra column names in the right index
+# pitcher_sheet.cell(row=1, column=7, value='Strike or Ball')
 
 
 # Close the Excel file
