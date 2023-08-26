@@ -98,11 +98,6 @@ root.title('Bloomsberg Baseball Pitching Charts')
 
 style = ttk.Style(root)
 sv_ttk.set_theme("light") 
-style.configure("TLabel", foreground="red")    # Set foreground (text) color to red
-style.configure("TButton", foreground="black")   # Set button text color to blue
-style.configure("Custom.TSpinbox",
-                arrowsize=20,  # Adjust the arrow size as needed
-                arrowcolor="black")
 # sv_ttk.set_theme("dark")
 
 root.tk_setPalette(background='#ececec')
