@@ -1,9 +1,10 @@
-from flask import Flask
+# Create Routes - where users can actually go to (Home Page)
+from flask import Blueprint
 
-# initialize flask
-def create_app():
-    app = Flask(__name__)
-    # initialize your app with a secret key
-    app.config['SECRET_KEY'] = 'Loxahatchee15846'
+# this is a blueprint for our first page of our flask web app
+views = Blueprint('views', __name__)
 
-    return app
+@views.route('/')
+# When this path is navigated to, this function will run
+def home():
+    return "<h1>Test</h1>"
