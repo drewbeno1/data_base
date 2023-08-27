@@ -94,7 +94,7 @@ def enter_key_pressed(event):
 
 
 root = tk.Tk()
-root.title('Bloomsberg Baseball Pitching Charts')
+root.title('Bloomsburg Baseball Pitching Charts')
 
 # YOU CANT STYLE BUTTON BACKGROUNDS WITH SV_TTK :(
 style = ttk.Style(root)
@@ -102,7 +102,7 @@ style = ttk.Style(root)
 style.configure('elder.TButton')
 style.map('elder.TButton', background=[('active', '#007fff')])
 
-name_list = ["Sammy", "Woody", "Argo", "Epstein"]
+name_list = ["Sammy", "Woody", "Argo", "Epstein", "Joe"]
 pitch_result_list = ["Strike looking", "Strike swing & miss", "Foul Ball", "Ball", "Strikeout looking", "Strikeout swinging",
                      "BIP Out", "Hit", "Walk", "HBP", "Drop 3rd & Safe"]
 pitch_type_list = ['FB', 'CB', 'SL', 'CH', 'Splitter', 'Cutter', 'Knuck', 'Eephus']
@@ -250,7 +250,7 @@ sheet = workbook['pitch breakdown']
 df2 = pd.DataFrame(sheet.values)
 df2.columns = df2.iloc[0]
 
-print(df2)
+# print(df2)
 
 # avg FB Velo
 fb_df = df2[['Pitcher', 'Velo', 'Pitch Type']]
@@ -258,10 +258,12 @@ fb_df = fb_df[fb_df['Pitch Type'] == 'FB']
 fb_df['Velo'] = fb_df['Velo'].astype('Int64')
 avg_fb = fb_df.groupby('Pitcher')['Velo'].mean().reset_index().round(1)
 avg_fb = avg_fb.rename(columns={'Velo': 'avg FB'})
+avg_fb = avg_fb.fillna(0)
 
 # Top FB Velo
 top_fb = fb_df.groupby('Pitcher')['Velo'].max().reset_index().round(1)
 top_fb = top_fb.rename(columns={'Velo': 'Top FB'})
+top_fb = top_fb.fillna(0)
 
 # Strike % 
 # Filter 'df' to only include rows where 'Pitch result' is 'Strike'
@@ -269,16 +271,37 @@ strike_df = df2[df2['Strike or Ball'] == 'Strike']
 # Group the filtered DataFrame by 'Pitcher' and calculate strike percentage
 strike_percentage = (strike_df.groupby('Pitcher')['Strike or Ball'].count() / df2.groupby('Pitcher')['Strike or Ball'].count() * 100).round(1)
 strike_percentage = strike_percentage.fillna(0)
-strike_percentage = strike_percentage.reset_index().rename(columns={'Strike or Ball': 'Strike Percentage'})
+strike_percentage = strike_percentage.reset_index().rename(columns={'Strike or Ball': 'Strike %'})
 strike_percentage = strike_percentage[strike_percentage['Pitcher'] != 'Pitcher']
-strike_percentage['Strike Percentage'] = strike_percentage['Strike Percentage'].apply(lambda x: f"{x}%")
+strike_percentage['Strike %'] = strike_percentage['Strike %'].apply(lambda x: f"{x}%")
 print(strike_percentage)
 
-# FB CSW % & Offspeed CSW % 
+# Whiff %
+# Filter dfs for Swings 
+swing_df = df2[df2['Swing'] != "No swing"]
+whiff_df = df2[df2['Swing'] == 'Swing no contact']
+# Group by Pitcher
+whiff_percentage = (whiff_df.groupby('Pitcher')['Swing'].count() / swing_df.groupby('Pitcher')['Swing'].count() * 100).round(1)
+whiff_percentage = whiff_percentage.fillna(0)
+whiff_percentage = whiff_percentage.reset_index().rename(columns={'Swing': 'Whiff %'})
+whiff_percentage = whiff_percentage[whiff_percentage['Pitcher'] != 'Pitcher']
+whiff_percentage['Whiff %'] = whiff_percentage['Whiff %'].apply(lambda x: f"{x}%")
 
-# Total CSW %
+# Total CSW
+called_strikes_count = df2[df2['Result'] == 'Strike looking'].groupby('Pitcher')['Result'].count()
+whiff_count = whiff_df.groupby('Pitcher')['Swing'].count()
+# Calculate the total count of results for each pitcher
+total_results_count = df2.groupby('Pitcher')['Result'].count()
+# Calculate CSW (called strikes plus whiffs) for each pitcher
+# ################################################################################################ Working for 2 out og 3 pitchers
+CSW = ((called_strikes_count + whiff_count) / total_results_count * 100).round(1)
+# print(CSW)
 
-# Free base % 
+# FB CS+W % & Offspeed CSW %  ((Called Strikes + Swings and misses)/number of pitches)
+
+# Free base count
+free_df = df2[df2['Free Bases'] == 'free base']
+free_bases = (free_df.groupby('Pitcher')['Free Bases'].count()).round(1)
 
 # Reformat df2 to be just unique Pitchers and then join their data back in 
 df2 = df2[['Pitcher']]
@@ -286,6 +309,9 @@ df2 = df2.drop_duplicates()
 df2 = df2.merge(avg_fb, how='left', on='Pitcher')
 df2 = df2.merge(top_fb, how='left', on='Pitcher')
 df2 = df2.merge(strike_percentage, how='left', on='Pitcher')
+df2 = df2.merge(whiff_percentage, how='left', on='Pitcher')
+df2 = df2.merge(free_bases, how='left', on='Pitcher')
+df2 = df2.fillna(0)
 
 print(df2)
 
@@ -300,8 +326,13 @@ for index, row in df2.iterrows():
     pitcher_sheet.append(row.tolist())
 
 ####include extra column names in the right index
-# pitcher_sheet.cell(row=1, column=7, value='Strike or Ball')
+pitcher_sheet.cell(row=1, column=2, value='avg FB')
+pitcher_sheet.cell(row=1, column=3, value='Top FB')
+pitcher_sheet.cell(row=1, column=4, value='Strike %')
+pitcher_sheet.cell(row=1, column=5, value='CSW %')
+pitcher_sheet.cell(row=1, column=6, value='Free Bases')
 
+workbook.save(selected_file_path)
 
 # Close the Excel file
 workbook.close()
