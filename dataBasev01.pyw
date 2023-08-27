@@ -223,6 +223,12 @@ workbook = openpyxl.load_workbook(selected_file_path)
 sheet = workbook['Sheet1']
 df = pd.DataFrame(sheet.values)
 df.columns = df.iloc[0]
+df = df[1:]
+# df.index = None
+print(df)
+
+# Let's go ahead and create a primary key just in case we need it 
+# df['Pitch Key'] =  df['Pitcher'] + '-' + df['Date'] + '-' + df['Pitch Counter']
 
 # Find extra columns
 df['Strike or Ball'] = df['Result'].apply(lambda x: 'Ball' if x in ['Ball', 'Walk', 'HBP'] else 'Strike')
@@ -268,22 +274,57 @@ Event_or_no = {
 }
 df['Event'] = df['Result'].map(Event_or_no).fillna('not event')
 
+
+# ######## Create Count #########
+# Temporarily make the df smaller so that we can work on it like an actual df. then we'll add that filler column back in
+
+mydf2 = df
+mydf2 = mydf2.reset_index()
+
+# ## Step 1: Specify when a new ab occurs. 
+# Create a new column to store the modified index
+mydf2['new_index'] = mydf2.index
+# Initialize a counter for 'new ab' occurrences. Start at 1 so that first row can be 1
+ab_counter = 1
+
+# Iterate through the DataFrame rows. 
+# ### The new atbats column will tell us when to loop through and find the counts and restart
+for i, row in mydf2.iterrows():
+    if row['Event'] == 'event':
+        next_row_index = i + 1
+        if next_row_index < len(mydf2) and mydf2.at[next_row_index, 'Event'] != 'event':
+            ab_counter += 1
+            mydf2.at[next_row_index, 'ab'] = f'ab {ab_counter}'
+
+mydf2.at[0, 'ab'] = 'ab 1'
+# Fill down 
+mydf2['ab'].fillna(method='ffill', inplace=True)
+# Drop extra index columns 
+mydf2 = mydf2.drop(columns={'index', 'new_index'})
+# print(mydf2)
+
+# # ### Now we are going to add a new column for strikes and balls that we can push down a whole row so that we can count 
+# # What is going on with the count a pitch behind so that it tells us what pitch was thrown in what count
+
+# mydf2['countsorb'] = mydf2['Strike or Ball']
+# mydf2 = mydf2.reset_index()
+# mydf2 = mydf2.drop(columns={'index'})
+
+# print(mydf2[['Strike or Ball', 'Event', 'countsorb', 'atbat']])
+
+df = mydf2
+df = df[0:]
+# print(df)
+
+# print(df.info())
 # Assign this to analysis sheet and include extra columns
 analysis_sheet = workbook['pitch breakdown']
-
-# Clear and load it back into Sheet1
-analysis_sheet.delete_rows(analysis_sheet.min_row, analysis_sheet.max_row)
+# Clear all rows except the header row (assuming header is in the first row)
+analysis_sheet.delete_rows(analysis_sheet.min_row + 1, analysis_sheet.max_row)
 # Write the manipulated data from the DataFrame to the analysis sheet
 for index, row in df.iterrows():
     analysis_sheet.append(row.tolist())
 
-####include extra column names in the right index
-analysis_sheet.cell(row=1, column=7, value='Strike or Ball')
-analysis_sheet.cell(row=1, column=8, value='Swing')
-analysis_sheet.cell(row=1, column=9, value='Free Bases')
-analysis_sheet.cell(row=1, column=10, value='Event')
-analysis_sheet.cell(row=1, column=11, value='Balls')
-analysis_sheet.cell(row=1, column=12, value='Strikes')
 
 # Save the updated workbook
 workbook.save(selected_file_path)
@@ -293,6 +334,7 @@ workbook = openpyxl.load_workbook(selected_file_path)
 sheet = workbook['pitch breakdown']
 df2 = pd.DataFrame(sheet.values)
 df2.columns = df2.iloc[0]
+df2[1:]
 
 # print(df2)
 
@@ -394,20 +436,11 @@ df2 = df2.fillna(0)
 pitcher_sheet = workbook['pitcher breakdown']
 
 # Clear and load it back into Sheet1
-pitcher_sheet.delete_rows(pitcher_sheet.min_row, pitcher_sheet.max_row)
+pitcher_sheet.delete_rows(pitcher_sheet.min_row + 1, pitcher_sheet.max_row)
 # Write the manipulated data from the DataFrame to the analysis sheet
 for index, row in df2.iterrows():
     pitcher_sheet.append(row.tolist())
 
-####include extra column names in the right index
-pitcher_sheet.cell(row=1, column=2, value='avg FB')
-pitcher_sheet.cell(row=1, column=3, value='Top FB')
-pitcher_sheet.cell(row=1, column=4, value='Strike %')
-pitcher_sheet.cell(row=1, column=5, value='Whiff %')
-pitcher_sheet.cell(row=1, column=6, value='CSW %')
-pitcher_sheet.cell(row=1, column=7, value='FB CSW %')
-pitcher_sheet.cell(row=1, column=8, value='OffSpeed CSW %')
-pitcher_sheet.cell(row=1, column=9, value='Free Bases')
 
 workbook.save(selected_file_path)
 
