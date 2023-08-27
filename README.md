@@ -1,5 +1,9 @@
 # Data Base
 ## A Data Entry tool that makes the transition from charting to analytics in the world of baseball infinitely quicker and easier
+## shows you trend analysis, is their strike % going up or down. 
+
+## It is a tool that can you give you data that trackman can't like k's and balls. You can use it in intersquads and true media can't. That way you 
+## get to the end of the of the fall you can see who improves in the stats that you like. 
 
 # Other name ideas 
 ## Ace Statistics
