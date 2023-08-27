@@ -75,7 +75,8 @@ def insert_row():
     sheet.append(row_values)
     workbook.save(selected_file_path)
     # Insert row into treeview
-    treeview.insert('', 0, values=row_values)
+    treeview.insert('', tk.END, values=row_values)
+    treeview.see(treeview.get_children()[-1])
     # Clear the values
     velo_entry.delete(0, "end")
     velo_entry.insert(0, "Velo")
@@ -83,6 +84,7 @@ def insert_row():
     Result_Combobox.insert(0, "Result")
     type_Combobox.delete(0, "end")
     type_Combobox.insert(0, "Pitch Type")
+
 
 def remove_row():
     global treeview, selected_file_path
