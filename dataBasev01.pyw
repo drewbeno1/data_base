@@ -2,7 +2,7 @@ import tkinter as tk
 from tkinter import ttk
 from tkinter import filedialog
 import openpyxl
-import sv_ttk
+# import sv_ttk
 import pandas as pd
 
 # Define a variable to store the selected file path
