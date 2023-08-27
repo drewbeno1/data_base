@@ -226,6 +226,7 @@ df.columns = df.iloc[0]
 
 # Find extra columns
 df['Strike or Ball'] = df['Result'].apply(lambda x: 'Ball' if x in ['Ball', 'Walk', 'HBP'] else 'Strike')
+
 result_to_swing = {
     'Ball': 'No swing',
     'Walk': 'No swing',
@@ -240,6 +241,7 @@ result_to_swing = {
     'Strikeout swinging': 'Swing no contact'
 }
 df['Swing'] = df['Result'].map(result_to_swing)
+
 result_of_ab = {
     'Ball': 'nothing',
     'Walk': 'free base',
@@ -255,6 +257,17 @@ result_of_ab = {
 }
 df['Free Bases'] = df['Result'].map(result_of_ab)
 
+Event_or_no = {
+    'Walk': 'event',
+    'HBP': 'event',
+    'Strikeout looking': 'event',
+    'Hit': 'event',
+    'BIP Out': 'event',
+    'Drop 3rd & Safe': 'event',
+    'Strikeout swinging': 'event'
+}
+df['Event'] = df['Result'].map(Event_or_no).fillna('not event')
+
 # Assign this to analysis sheet and include extra columns
 analysis_sheet = workbook['pitch breakdown']
 
@@ -268,6 +281,9 @@ for index, row in df.iterrows():
 analysis_sheet.cell(row=1, column=7, value='Strike or Ball')
 analysis_sheet.cell(row=1, column=8, value='Swing')
 analysis_sheet.cell(row=1, column=9, value='Free Bases')
+analysis_sheet.cell(row=1, column=10, value='Event')
+analysis_sheet.cell(row=1, column=11, value='Balls')
+analysis_sheet.cell(row=1, column=12, value='Strikes')
 
 # Save the updated workbook
 workbook.save(selected_file_path)
@@ -297,7 +313,7 @@ top_fb = top_fb.fillna(0)
 # Filter 'df' to only include rows where 'Pitch result' is 'Strike'
 strike_df = df2[df2['Strike or Ball'] == 'Strike']
 # Group the filtered DataFrame by 'Pitcher' and calculate strike percentage
-strike_percentage = (strike_df.groupby('Pitcher')['Strike or Ball'].count() / df2.groupby('Pitcher')['Strike or Ball'].count()).round(1)
+strike_percentage = (strike_df.groupby('Pitcher')['Strike or Ball'].count() / df2.groupby('Pitcher')['Strike or Ball'].count()).round(2)
 strike_percentage = strike_percentage.fillna(0)
 strike_percentage = strike_percentage.reset_index().rename(columns={'Strike or Ball': 'Strike %'})
 strike_percentage = strike_percentage[strike_percentage['Pitcher'] != 'Pitcher']
@@ -308,7 +324,7 @@ strike_percentage = strike_percentage[strike_percentage['Pitcher'] != 'Pitcher']
 swing_df = df2[df2['Swing'] != "No swing"]
 whiff_df = df2[df2['Swing'] == 'Swing no contact']
 # Group by Pitcher
-whiff_percentage = (whiff_df.groupby('Pitcher')['Swing'].count() / swing_df.groupby('Pitcher')['Swing'].count()).round(1)
+whiff_percentage = (whiff_df.groupby('Pitcher')['Swing'].count() / swing_df.groupby('Pitcher')['Swing'].count()).round(2)
 whiff_percentage = whiff_percentage.fillna(0)
 whiff_percentage = whiff_percentage.reset_index().rename(columns={'Swing': 'Whiff %'})
 whiff_percentage = whiff_percentage[whiff_percentage['Pitcher'] != 'Pitcher']
@@ -321,7 +337,7 @@ called_or_whiff_count = df2[df2['Result'].isin(['Strike looking',
                                                 'Strikeout looking', 
                                                 'Strikeout swinging'])].groupby('Pitcher')['Result'].count()
 total_results_count = df2.groupby('Pitcher')['Result'].count()
-CSW = ((called_or_whiff_count) / total_results_count).round(1)
+CSW = ((called_or_whiff_count) / total_results_count).round(2)
 CSW = CSW.fillna(0)
 CSW = CSW.reset_index().rename(columns={'Result': 'CSW % '})
 CSW = CSW[CSW['Pitcher'] != 'Pitcher']
@@ -335,7 +351,7 @@ called_or_whiff_count = fb_csw[fb_csw['Result'].isin(['Strike looking',
                                                       'Strikeout looking', 
                                                       'Strikeout swinging'])].groupby('Pitcher')['Result'].count()
 total_results_count = fb_csw.groupby('Pitcher')['Result'].count()
-fb_CSW = (called_or_whiff_count / total_results_count).round(1)
+fb_CSW = (called_or_whiff_count / total_results_count).round(2)
 fb_CSW = fb_CSW.fillna(0)
 fb_CSW = fb_CSW.reset_index().rename(columns={'Result': 'FB CSW %'})
 fb_CSW = fb_CSW[fb_CSW['Pitcher'] != 'Pitcher']
@@ -348,7 +364,7 @@ called_or_whiff_count = os_csw[os_csw['Result'].isin(['Strike looking',
                                                       'Strikeout looking', 
                                                       'Strikeout swinging'])].groupby('Pitcher')['Result'].count()
 total_results_count = os_csw.groupby('Pitcher')['Result'].count()
-os_CSW = (called_or_whiff_count / total_results_count).round(1)
+os_CSW = (called_or_whiff_count / total_results_count).round(2)
 os_CSW = os_CSW.fillna(0)
 os_CSW = os_CSW.reset_index().rename(columns={'Result': 'OffSpeed CSW %'})
 # os_CSW = os_CSW[fb_CSW['Pitcher'] != 'Pitcher']
