@@ -32,9 +32,11 @@ def load_data():
     for value_tuple in list_values[1:]:
         treeview.insert('', tk.END, values=value_tuple)
 
+# Define a variable to store the last pitch count
+last_pitch_count = None
 
 def insert_row():
-    global selected_file_path, treeview  # Declare global variables
+    global selected_file_path, treeview, last_pitch_count  # Declare global variables
     if selected_file_path is None:
         # Prompt the user to load a file first
         tk.messagebox.showerror("Error", "Please load a file first.")
@@ -57,6 +59,14 @@ def insert_row():
     ):
         tk.messagebox.showerror("Get it right bro", "Please fill in all fields correctly")
         return
+    
+        # Check if the pitch count remains the same as the last entry
+    if last_pitch_count is not None and Pitch_Count == last_pitch_count:
+        tk.messagebox.showerror("Huskies > Yanks", "Please don't forget to adjust pitch count")
+        return
+    
+    # Update the last_pitch_count with the current pitch count
+    last_pitch_count = Pitch_Count
     
     # Insert row into Excel sheet using the selected file path
     workbook = openpyxl.load_workbook(selected_file_path)
