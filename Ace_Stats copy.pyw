@@ -46,6 +46,18 @@ def insert_row():
     Velo = velo_entry.get()
     Type = type_Combobox.get()
     Result = Result_Combobox.get()
+
+    # Validate the ComboBoxes and Entry fields
+    if (
+        Pitcher not in name_list
+        or Date == "Date"
+        or Velo == "Velo"
+        or Type not in pitch_type_list
+        or Result not in pitch_result_list
+    ):
+        tk.messagebox.showerror("Get it right bro", "Please fill in all fields correctly")
+        return
+    
     # Insert row into Excel sheet using the selected file path
     workbook = openpyxl.load_workbook(selected_file_path)
     sheet = workbook['Sheet1']
@@ -94,15 +106,19 @@ def enter_key_pressed(event):
 
 
 root = tk.Tk()
-root.title('Bloomsberg Baseball Pitching Charts')
+root.title('Bloomsburg Baseball Pitching Charts')
 
+# YOU CANT STYLE BUTTON BACKGROUNDS WITH SV_TTK :(
 style = ttk.Style(root)
-sv_ttk.set_theme("light") 
-# sv_ttk.set_theme("dark")
+# sv_ttk.set_theme("light") 
+style.configure('elder.TButton')
+style.map('elder.TButton', background=[('active', '#007fff')])
 
-root.tk_setPalette(background='#ececec')
-
-name_list = ["Sammy", "Woody", "Argo", "Epstein"]
+name_list = ['Andrew Armstrong', 'Nate Baranski', 'Kolby Barrow', 'Mike Cacioppo', 'Jack Carver', 
+             'Cole Coolbaugh', 'Dominic Coombe', 'Nick Heubel', 'Dansby Koppisch', 'Jake Kuperavage',
+             'Tyler LePage', 'Landon Lorson', 'Dylan Lubinski', 'Josh Marquard', 'Emmet McLaughlin',
+             'Travis Peden', 'Kaden Peifer', 'Zach Steen', 'Xander Velez', 'Matt Vernieri', 'Brian Walsh',
+             'Owen Wilhide', 'Christian Zito', 'Will Dean', 'Scott Gilbert', 'Mason Keene', 'James Scott', 'Mike Standen']
 pitch_result_list = ["Strike looking", "Strike swing & miss", "Foul Ball", "Ball", "Strikeout looking", "Strikeout swinging",
                      "BIP Out", "Hit", "Walk", "HBP", "Drop 3rd & Safe"]
 pitch_type_list = ['FB', 'CB', 'SL', 'CH', 'Splitter', 'Cutter', 'Knuck', 'Eephus']
@@ -145,7 +161,7 @@ Result_Combobox.current(0)  # Set the initial value by index
 Result_Combobox.set("Pitch Result")  # Set the placeholder text
 Result_Combobox.grid(row=6, column=0, padx=5, pady=5, sticky="ew")
 
-button = ttk.Button(widgets_frame, text="Enter", command=insert_row)
+button = ttk.Button(widgets_frame, text="Enter", command=insert_row, style='elder.TButton')
 button.grid(row=7, column=0, padx=5, pady=5, sticky="nsew")
 button.bind('<Return>', enter_key_pressed)
 button.bind('<KP_Enter>', enter_key_pressed) 
@@ -212,6 +228,20 @@ result_to_swing = {
     'Strikeout swinging': 'Swing no contact'
 }
 df['Swing'] = df['Result'].map(result_to_swing)
+result_of_ab = {
+    'Ball': 'nothing',
+    'Walk': 'free base',
+    'HBP': 'free base',
+    'Strike looking': 'nothing',
+    'Strikeout looking': 'not free base',
+    'Foul Ball': 'nothing',  # Note: Removed the extra double quotes around 'Foul Ball'
+    'Hit': 'not free base',
+    'BIP Out': 'not free base',
+    'Strike swing & miss': 'nothing',
+    'Drop 3rd & Safe': 'not free base',
+    'Strikeout swinging': 'not free base'
+}
+df['Free Bases'] = df['Result'].map(result_of_ab)
 
 # Assign this to analysis sheet and include extra columns
 analysis_sheet = workbook['pitch breakdown']
@@ -225,16 +255,133 @@ for index, row in df.iterrows():
 ####include extra column names in the right index
 analysis_sheet.cell(row=1, column=7, value='Strike or Ball')
 analysis_sheet.cell(row=1, column=8, value='Swing')
+analysis_sheet.cell(row=1, column=9, value='Free Bases')
 
 # Save the updated workbook
 workbook.save(selected_file_path)
 
-# ################# Create a by player sheet #####################
+# ################# Create a by player sheet with their stats #####################
 workbook = openpyxl.load_workbook(selected_file_path)
 sheet = workbook['pitch breakdown']
 df2 = pd.DataFrame(sheet.values)
+df2.columns = df2.iloc[0]
+
+# print(df2)
+
+# avg FB Velo
+fb_df = df2[['Pitcher', 'Velo', 'Pitch Type']]
+fb_df = fb_df[fb_df['Pitch Type'] == 'FB']
+fb_df['Velo'] = fb_df['Velo'].astype('Int64')
+avg_fb = fb_df.groupby('Pitcher')['Velo'].mean().reset_index().round(1)
+avg_fb = avg_fb.rename(columns={'Velo': 'avg FB'})
+avg_fb = avg_fb.fillna(0)
+
+# Top FB Velo
+top_fb = fb_df.groupby('Pitcher')['Velo'].max().reset_index().round(1)
+top_fb = top_fb.rename(columns={'Velo': 'Top FB'})
+top_fb = top_fb.fillna(0)
+
+# Strike % 
+# Filter 'df' to only include rows where 'Pitch result' is 'Strike'
+strike_df = df2[df2['Strike or Ball'] == 'Strike']
+# Group the filtered DataFrame by 'Pitcher' and calculate strike percentage
+strike_percentage = (strike_df.groupby('Pitcher')['Strike or Ball'].count() / df2.groupby('Pitcher')['Strike or Ball'].count()).round(1)
+strike_percentage = strike_percentage.fillna(0)
+strike_percentage = strike_percentage.reset_index().rename(columns={'Strike or Ball': 'Strike %'})
+strike_percentage = strike_percentage[strike_percentage['Pitcher'] != 'Pitcher']
+# print(strike_percentage)
+
+# Whiff %
+# Filter dfs for Swings 
+swing_df = df2[df2['Swing'] != "No swing"]
+whiff_df = df2[df2['Swing'] == 'Swing no contact']
+# Group by Pitcher
+whiff_percentage = (whiff_df.groupby('Pitcher')['Swing'].count() / swing_df.groupby('Pitcher')['Swing'].count()).round(1)
+whiff_percentage = whiff_percentage.fillna(0)
+whiff_percentage = whiff_percentage.reset_index().rename(columns={'Swing': 'Whiff %'})
+whiff_percentage = whiff_percentage[whiff_percentage['Pitcher'] != 'Pitcher']
 
 
+# Total CSW %
+called_or_whiff_count = df2[df2['Result'].isin(['Strike looking', 
+                                                'Strike swing & miss', 
+                                                'Drop 3rd & Safe', 
+                                                'Strikeout looking', 
+                                                'Strikeout swinging'])].groupby('Pitcher')['Result'].count()
+total_results_count = df2.groupby('Pitcher')['Result'].count()
+CSW = ((called_or_whiff_count) / total_results_count).round(1)
+CSW = CSW.fillna(0)
+CSW = CSW.reset_index().rename(columns={'Result': 'CSW % '})
+CSW = CSW[CSW['Pitcher'] != 'Pitcher']
+
+# FB CS+W % & Offspeed CSW %  ((Called Strikes + Swings and misses)/number of pitches)
+# ## FB 
+fb_csw = df2[df2['Pitch Type'] == 'FB']
+called_or_whiff_count = fb_csw[fb_csw['Result'].isin(['Strike looking', 
+                                                      'Strike swing & miss', 
+                                                      'Drop 3rd & Safe', 
+                                                      'Strikeout looking', 
+                                                      'Strikeout swinging'])].groupby('Pitcher')['Result'].count()
+total_results_count = fb_csw.groupby('Pitcher')['Result'].count()
+fb_CSW = (called_or_whiff_count / total_results_count).round(1)
+fb_CSW = fb_CSW.fillna(0)
+fb_CSW = fb_CSW.reset_index().rename(columns={'Result': 'FB CSW %'})
+fb_CSW = fb_CSW[fb_CSW['Pitcher'] != 'Pitcher']
+
+# ## OFF SPEED
+os_csw = df2[df2['Pitch Type'] != 'FB']
+called_or_whiff_count = os_csw[os_csw['Result'].isin(['Strike looking', 
+                                                      'Strike swing & miss', 
+                                                      'Drop 3rd & Safe', 
+                                                      'Strikeout looking', 
+                                                      'Strikeout swinging'])].groupby('Pitcher')['Result'].count()
+total_results_count = os_csw.groupby('Pitcher')['Result'].count()
+os_CSW = (called_or_whiff_count / total_results_count).round(1)
+os_CSW = os_CSW.fillna(0)
+os_CSW = os_CSW.reset_index().rename(columns={'Result': 'OffSpeed CSW %'})
+# os_CSW = os_CSW[fb_CSW['Pitcher'] != 'Pitcher']
+# print(os_CSW)
+
+# Free base count
+free_df = df2[df2['Free Bases'] == 'free base']
+free_bases = (free_df.groupby('Pitcher')['Free Bases'].count()).round(1)
+
+# Reformat df2 to be just unique Pitchers and then join their data back in 
+df2 = df2[['Pitcher']]
+df2 = df2.drop_duplicates()
+df2 = df2.merge(avg_fb, how='left', on='Pitcher')
+df2 = df2.merge(top_fb, how='left', on='Pitcher')
+df2 = df2.merge(strike_percentage, how='left', on='Pitcher')
+df2 = df2.merge(whiff_percentage, how='left', on='Pitcher')
+df2 = df2.merge(CSW, how='left', on='Pitcher')
+df2 = df2.merge(fb_CSW, how='left', on='Pitcher')
+df2 = df2.merge(os_CSW, how='left', on='Pitcher')
+df2 = df2.merge(free_bases, how='left', on='Pitcher')
+df2 = df2.fillna(0)
+
+# print(df2)
+
+# Setup new page on excel file
+# Assign this to analysis sheet and include extra columns
+pitcher_sheet = workbook['pitcher breakdown']
+
+# Clear and load it back into Sheet1
+pitcher_sheet.delete_rows(pitcher_sheet.min_row, pitcher_sheet.max_row)
+# Write the manipulated data from the DataFrame to the analysis sheet
+for index, row in df2.iterrows():
+    pitcher_sheet.append(row.tolist())
+
+####include extra column names in the right index
+pitcher_sheet.cell(row=1, column=2, value='avg FB')
+pitcher_sheet.cell(row=1, column=3, value='Top FB')
+pitcher_sheet.cell(row=1, column=4, value='Strike %')
+pitcher_sheet.cell(row=1, column=5, value='Whiff %')
+pitcher_sheet.cell(row=1, column=6, value='CSW %')
+pitcher_sheet.cell(row=1, column=7, value='FB CSW %')
+pitcher_sheet.cell(row=1, column=8, value='OffSpeed CSW %')
+pitcher_sheet.cell(row=1, column=9, value='Free Bases')
+
+workbook.save(selected_file_path)
 
 # Close the Excel file
 workbook.close()

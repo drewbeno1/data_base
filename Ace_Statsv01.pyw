@@ -46,6 +46,18 @@ def insert_row():
     Velo = velo_entry.get()
     Type = type_Combobox.get()
     Result = Result_Combobox.get()
+
+    # Validate the ComboBoxes and Entry fields
+    if (
+        Pitcher not in name_list
+        or Date == "mm/dd/yyyy"
+        or Velo == "Velo"
+        or Type not in pitch_type_list
+        or Result not in pitch_result_list
+    ):
+        tk.messagebox.showerror("Get it right bro", "Please fill in all fields correctly.")
+        return
+    
     # Insert row into Excel sheet using the selected file path
     workbook = openpyxl.load_workbook(selected_file_path)
     sheet = workbook['Sheet1']
@@ -102,7 +114,11 @@ style = ttk.Style(root)
 style.configure('elder.TButton')
 style.map('elder.TButton', background=[('active', '#007fff')])
 
-name_list = ["Sammy", "Woody", "Argo", "Epstein", "Joe"]
+name_list = ['Andrew Armstrong', 'Nate Baranski', 'Kolby Barrow', 'Mike Cacioppo', 'Jack Carver', 
+             'Cole Coolbaugh', 'Dominic Coombe', 'Nick Heubel', 'Dansby Koppisch', 'Jake Kuperavage',
+             'Tyler LePage', 'Landon Lorson', 'Dylan Lubinski', 'Josh Marquard', 'Emmet McLaughlin',
+             'Travis Peden', 'Kaden Peifer', 'Zach Steen', 'Xander Velez', 'Matt Vernieri', 'Brian Walsh',
+             'Owen Wilhide', 'Christian Zito', 'Will Dean', 'Scott Gilbert', 'Mason Keene', 'James Scott', 'Mike Standen']
 pitch_result_list = ["Strike looking", "Strike swing & miss", "Foul Ball", "Ball", "Strikeout looking", "Strikeout swinging",
                      "BIP Out", "Hit", "Walk", "HBP", "Drop 3rd & Safe"]
 pitch_type_list = ['FB', 'CB', 'SL', 'CH', 'Splitter', 'Cutter', 'Knuck', 'Eephus']
@@ -122,7 +138,7 @@ Pitcher_Combobox.set("Pitcher")  # Set the placeholder text
 Pitcher_Combobox.grid(row=0, column=0, padx=5, pady=5, sticky="ew")
 
 Date_entry = ttk.Entry(widgets_frame)
-Date_entry.insert(0, "Date")
+Date_entry.insert(0, "mm/dd/yyyy")
 Date_entry.bind("<FocusIn>", lambda e: Date_entry.delete('0', 'end'))
 Date_entry.grid(row=1, column=0, padx=5, pady=(0, 5), sticky="ew")
 
@@ -323,7 +339,7 @@ total_results_count = os_csw.groupby('Pitcher')['Result'].count()
 os_CSW = (called_or_whiff_count / total_results_count).round(1)
 os_CSW = os_CSW.fillna(0)
 os_CSW = os_CSW.reset_index().rename(columns={'Result': 'OffSpeed CSW %'})
-os_CSW = os_CSW[fb_CSW['Pitcher'] != 'Pitcher']
+# os_CSW = os_CSW[fb_CSW['Pitcher'] != 'Pitcher']
 # print(os_CSW)
 
 # Free base count
