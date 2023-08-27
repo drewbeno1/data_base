@@ -75,7 +75,7 @@ def insert_row():
     sheet.append(row_values)
     workbook.save(selected_file_path)
     # Insert row into treeview
-    treeview.insert('', tk.END, values=row_values)
+    treeview.insert('', 0, values=row_values)
     # Clear the values
     velo_entry.delete(0, "end")
     velo_entry.insert(0, "Velo")
