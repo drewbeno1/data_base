@@ -225,7 +225,7 @@ df = pd.DataFrame(sheet.values)
 df.columns = df.iloc[0]
 df = df[1:]
 # df.index = None
-print(df)
+# print(df)
 
 # Let's go ahead and create a primary key just in case we need it 
 # df['Pitch Key'] =  df['Pitcher'] + '-' + df['Date'] + '-' + df['Pitch Counter']
@@ -292,7 +292,7 @@ ab_counter = 1
 for i, row in mydf2.iterrows():
     if row['Event'] == 'event':
         next_row_index = i + 1
-        if next_row_index < len(mydf2) and mydf2.at[next_row_index, 'Event'] != 'event':
+        if next_row_index < len(mydf2): 
             ab_counter += 1
             mydf2.at[next_row_index, 'ab'] = f'ab {ab_counter}'
 
@@ -303,16 +303,35 @@ mydf2['ab'].fillna(method='ffill', inplace=True)
 mydf2 = mydf2.drop(columns={'index', 'new_index'})
 # print(mydf2)
 
-# # ### Now we are going to add a new column for strikes and balls that we can push down a whole row so that we can count 
-# # What is going on with the count a pitch behind so that it tells us what pitch was thrown in what count
+# ### Now that we have at bat trackers, for each at bat count the pitches delayed. 
+# Insert chatgpt help here. 
+mydf3 = mydf2
+# Initialize 'Balls' and 'Strikes' columns with 0
+# Initialize variables to keep track of the cumulative count of balls and strikes
+# cumulative_balls = 0
+# cumulative_strikes = 0
 
-# mydf2['countsorb'] = mydf2['Strike or Ball']
-# mydf2 = mydf2.reset_index()
-# mydf2 = mydf2.drop(columns={'index'})
+# # Iterate through the DataFrame and update the cumulative counts
+# for index, row in mydf3.iterrows():
+#     if current_ab != row['ab']:
+#         # Start a new at-bat
+#         current_ab = row['ab']
+#         cumulative_balls = 0
+#         cumulative_strikes = 0
 
-# print(mydf2[['Strike or Ball', 'Event', 'countsorb', 'atbat']])
+#     if row['Strike or Ball'] == 'Ball':
+#         cumulative_balls += 1
+#     elif row['Strike or Ball'] == 'Strike':
+#         cumulative_strikes += 1
 
-df = mydf2
+#     # Update the DataFrame with the cumulative ball and strike counts
+#     mydf3.at[index, 'Balls'] = cumulative_balls
+#     mydf3.at[index, 'Strikes'] = cumulative_strikes
+
+# print(mydf3[['Strike or Ball', 'ab', 'Balls', 'Strikes']])
+
+
+df = mydf3
 df = df[0:]
 # print(df)
 
