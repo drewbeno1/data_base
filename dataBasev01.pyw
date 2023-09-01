@@ -9,8 +9,12 @@ import pandas as pd
 selected_file_path = None
 # Define treeview as a global variable
 treeview = None
+
 # Create a list to store the data and corresponding Excel row indices
 data_and_indices = []
+
+# Create a dictionary to store Pitch_Count for each Pitcher
+pitch_count_dict = {}
 
 def load_data():
     global selected_file_path, treeview  # Declare global variables
@@ -32,11 +36,20 @@ def load_data():
     for value_tuple in list_values[1:]:
         treeview.insert('', tk.END, values=value_tuple)
 
-# Define a variable to store the last pitch count
-last_pitch_count = None
+    # Check if the file is empty or contains data
+    if len(list_values) > 0:
+        # If it contains data, find the last row and its Pitch_Count
+        last_row = list_values[-1]
+        last_pitcher = last_row[0]
+        last_pitch_count = last_row[2]  # Assuming Pitch_Count is in the third column (index 2)
+        
+        # Store the last Pitch_Count for the last Pitcher
+        pitch_count_dict[last_pitcher] = last_pitch_count
+
 
 def insert_row():
-    global selected_file_path, treeview, last_pitch_count  # Declare global variables
+    global selected_file_path, treeview, pitch_count_dict, last_pitcher  # Declare global variables
+    global last_pitcher  # Declare last_pitcher as a global variable
     if selected_file_path is None:
         # Prompt the user to load a file first
         tk.messagebox.showerror("Error", "Please load a file first.")
@@ -44,7 +57,6 @@ def insert_row():
 
     Pitcher = Pitcher_Combobox.get()
     Date = Date_entry.get()
-    Pitch_Count = count_spinbox.get()
     Velo = velo_entry.get()
     Type = type_Combobox.get()
     Result = Result_Combobox.get()
@@ -60,13 +72,14 @@ def insert_row():
         tk.messagebox.showerror("Get it right bro", "Please fill in all fields correctly")
         return
     
-        # Check if the pitch count remains the same as the last entry
-    if last_pitch_count is not None and Pitch_Count == last_pitch_count:
-        tk.messagebox.showerror("Huskies > Yanks", "Please don't forget to adjust pitch count")
-        return
-    
-    # Update the last_pitch_count with the current pitch count
-    last_pitch_count = Pitch_Count
+    # Check if it's a new pitcher or a repeat
+    if Pitcher != last_pitcher:
+        # Initialize the Pitch_Count for the current Pitcher if it's a new Pitcher
+        pitch_count_dict[Pitcher] = 0
+
+    # Increment the Pitch_Count for the current Pitcher
+    pitch_count_dict[Pitcher] += 1
+    Pitch_Count = pitch_count_dict[Pitcher]
     
     # Insert row into Excel sheet using the selected file path
     workbook = openpyxl.load_workbook(selected_file_path)
@@ -85,6 +98,11 @@ def insert_row():
     type_Combobox.delete(0, "end")
     type_Combobox.insert(0, "Pitch Type")
 
+    # Update the last_pitcher variable # This stores the last pitcher off so that it knows to restart counting or not
+    last_pitcher = Pitcher
+
+# Initialize the last_pitcher variable to None
+last_pitcher = None
 
 def remove_row():
     global treeview, selected_file_path
@@ -102,6 +120,9 @@ def remove_row():
         item_values = treeview.item(item, 'values')
         # Find the row index of the item in the Excel file based on the Date column (adjust as needed)
         date_to_delete = item_values[1]  # Assuming Date is the second column (index 1)
+        pitcher = item_values[0]
+        if pitcher in pitch_count_dict:
+            pitch_count_dict[pitcher] -= 1  # Decrement the pitch count for the removed row
         for row in sheet.iter_rows(min_row=2, max_row=sheet.max_row, min_col=2, max_col=2):
             if row[0].value == date_to_delete:
                 sheet.delete_rows(row[0].row)
@@ -131,8 +152,8 @@ name_list = ['Andrew Armstrong', 'Nate Baranski', 'Kolby Barrow', 'Mike Cacioppo
              'Tyler LePage', 'Landon Lorson', 'Dylan Lubinski', 'Josh Marquard', 'Emmet McLaughlin',
              'Travis Peden', 'Kaden Peifer', 'Zach Steen', 'Xander Velez', 'Matt Vernieri', 'Brian Walsh',
              'Owen Wilhide', 'Christian Zito', 'Will Dean', 'Scott Gilbert', 'Mason Keene', 'James Scott', 'Mike Standen']
-pitch_result_list = ["Strike looking", "Strike swing & miss", "Foul Ball", "Ball", "Strikeout looking", "Strikeout swinging",
-                     "BIP Out", "Hit", "Walk", "HBP", "Drop 3rd & Safe"]
+pitch_result_list = ["Ball", "Strike looking", "Strike swinging", "Foul Ball", "Strikeout looking", "Strikeout swinging",
+                     "BIP Out", "Single", "Double", "Triple", "HR," "Walk", "HBP", "Drop 3rd & Safe"]
 pitch_type_list = ['FB', 'CB', 'SL', 'CH', 'Splitter', 'Cutter', 'Knuck', 'Eephus']
 
 frame = ttk.Frame(root)
@@ -150,13 +171,14 @@ Pitcher_Combobox.set("Pitcher")  # Set the placeholder text
 Pitcher_Combobox.grid(row=0, column=0, padx=5, pady=5, sticky="ew")
 
 Date_entry = ttk.Entry(widgets_frame)
-Date_entry.insert(0, "Date")
+Date_entry.insert(0, "mm/dd/yyyy")
 Date_entry.bind("<FocusIn>", lambda e: Date_entry.delete('0', 'end'))
 Date_entry.grid(row=1, column=0, padx=5, pady=(0, 5), sticky="ew")
 
-count_spinbox = ttk.Spinbox(widgets_frame, from_=0, to=200)
-count_spinbox.insert(0, "Pitch Counter")
-count_spinbox.grid(row=3, column=0, padx=5, pady=5, sticky="ew")
+# We are gonna find pitch count manually
+# count_spinbox = ttk.Spinbox(widgets_frame, from_=0, to=200)
+# count_spinbox.insert(0, "Pitch Counter")
+# count_spinbox.grid(row=3, column=0, padx=5, pady=5, sticky="ew")
 
 velo_entry = ttk.Entry(widgets_frame)
 velo_entry.insert(0, "Velo")
@@ -173,7 +195,7 @@ Result_Combobox.current(0)  # Set the initial value by index
 Result_Combobox.set("Pitch Result")  # Set the placeholder text
 Result_Combobox.grid(row=6, column=0, padx=5, pady=5, sticky="ew")
 
-button = ttk.Button(widgets_frame, text="Enter", command=insert_row, style='elder.TButton')
+button = ttk.Button(widgets_frame, text="Enter Pitch", command=insert_row, style='elder.TButton')
 button.grid(row=7, column=0, padx=5, pady=5, sticky="nsew")
 button.bind('<Return>', enter_key_pressed)
 button.bind('<KP_Enter>', enter_key_pressed) 
@@ -196,13 +218,13 @@ treeScroll.pack(side="right", fill="y")
 
 
 # Define your column identifiers
-cols = ("Pitcher", "Date", "Pitch Counter", "Velo", "Pitch Type", "Result")
+cols = ("Pitcher", "Date", "Pitch Count", "Velo", "Pitch Type", "Result")
 
 treeview = ttk.Treeview(treeFrame, show="headings",
                         yscrollcommand=treeScroll.set, columns=cols, height=13)
 treeview.column("Pitcher", width=100)
 treeview.column("Date", width=100)
-treeview.column("Pitch Counter", width=100)
+treeview.column("Pitch Count", width=100)
 treeview.column("Velo", width=100)
 treeview.column("Pitch Type", width=100)
 treeview.column("Result", width=100)
@@ -240,9 +262,12 @@ result_to_swing = {
     'Strike looking': 'No swing',
     'Strikeout looking': 'No swing',
     'Foul Ball': 'Swing contact',  # Note: Removed the extra double quotes around 'Foul Ball'
-    'Hit': 'Swing contact',
+    'Single': 'Swing contact',
+    'Double': 'Swing contact',
+    'Triple': 'Swing contact',
+    'HR': 'Swing contact',
     'BIP Out': 'Swing contact',
-    'Strike swing & miss': 'Swing no contact',
+    'Strike swinging': 'Swing no contact',
     'Drop 3rd & Safe': 'Swing no contact',
     'Strikeout swinging': 'Swing no contact'
 }
@@ -255,9 +280,12 @@ result_of_ab = {
     'Strike looking': 'nothing',
     'Strikeout looking': 'not free base',
     'Foul Ball': 'nothing',  # Note: Removed the extra double quotes around 'Foul Ball'
-    'Hit': 'not free base',
+    'Single': 'not free base',
+    'Double': 'not free base',
+    'Triple': 'not free base',
+    'HR': 'not free base',
     'BIP Out': 'not free base',
-    'Strike swing & miss': 'nothing',
+    'Strike swinging': 'nothing',
     'Drop 3rd & Safe': 'not free base',
     'Strikeout swinging': 'not free base'
 }
@@ -267,7 +295,10 @@ Event_or_no = {
     'Walk': 'event',
     'HBP': 'event',
     'Strikeout looking': 'event',
-    'Hit': 'event',
+    'Single': 'event',
+    'Double': 'event',
+    'Triple': 'event',
+    'HR': 'event',
     'BIP Out': 'event',
     'Drop 3rd & Safe': 'event',
     'Strikeout swinging': 'event'
@@ -304,31 +335,71 @@ mydf2 = mydf2.drop(columns={'index', 'new_index'})
 # print(mydf2)
 
 # ### Now that we have at bat trackers, for each at bat count the pitches delayed. 
-# Insert chatgpt help here. 
+# We will create a "Strike or Ball 2" column that we will seperate out as its own df
+# Then create a column called index in the original df and
+# Then add a null to the top row and move every other field down by 1 index in the new s or b df
+# Then reset that index and join it back in. 
+# Now every pitch can be counted at 1 pitch later
+# Then just need logic to make the strike or ball field null each row right after an event and for it to restart 
+#    the count each ab 
 mydf3 = mydf2
+
+mydf4 = mydf3[['Strike or Ball']]
+# The new null row to add
+new_row = pd.Series({'Strike or Ball': 'dummy'})
+# Insert the new row at the specified position
+mydf4 = pd.concat([new_row, mydf4], ignore_index=True)
+# Add in index row & rename Strike or Ball
+mydf4 = mydf4.reset_index()
+mydf4 = mydf4.rename(columns={'Strike or Ball': 'Strike or Ball Count Tracker'})
+
+# Now add in index for original df 
+mydf3 = mydf3.reset_index()
+
+# Now merge new one back in. It worked woo! 
+mydf3 = mydf3.merge(mydf4[['index', 'Strike or Ball Count Tracker']], on='index', how='left')
+
+mydf3 = mydf3.drop(columns='index')
+
+# ## Now we can do what we were trying to do before with the pandas counter
+
+# Set the first pitch of each ab to not be tracked since that is just telling us the pitch outcome of the ab anyway we dont care
+# Find the first occurrence of each value in 'ab'
+first_occurrence_mask = ~mydf3['ab'].duplicated()
+
+# Set the 'Strike or Ball Count Tracker' value to null for the first occurrences
+mydf3.loc[first_occurrence_mask, 'Strike or Ball Count Tracker'] = None
+
 # Initialize 'Balls' and 'Strikes' columns with 0
 # Initialize variables to keep track of the cumulative count of balls and strikes
-# cumulative_balls = 0
-# cumulative_strikes = 0
+# Initialize 'Balls' and 'Strikes' columns with 0
+mydf3['Balls'] = 0
+mydf3['Strikes'] = 0
 
-# # Iterate through the DataFrame and update the cumulative counts
-# for index, row in mydf3.iterrows():
-#     if current_ab != row['ab']:
-#         # Start a new at-bat
-#         current_ab = row['ab']
-#         cumulative_balls = 0
-#         cumulative_strikes = 0
+# Track counts based on 'ab' and 'Strike or Ball'
+current_ab = None
+ball_count = 0
+strike_count = 0
 
-#     if row['Strike or Ball'] == 'Ball':
-#         cumulative_balls += 1
-#     elif row['Strike or Ball'] == 'Strike':
-#         cumulative_strikes += 1
+for index, row in mydf3.iterrows():
+    if current_ab != row['ab']:
+        # Start a new 'ab' group
+        current_ab = row['ab']
+        ball_count = 0
+        strike_count = 0
+    
+    if row['Strike or Ball Count Tracker'] == 'Ball':
+        ball_count += 1
+    elif row['Strike or Ball Count Tracker'] == 'Strike':
+        strike_count += 1
+    
+    mydf3.at[index, 'Balls'] = ball_count
+    mydf3.at[index, 'Strikes'] = strike_count
 
-#     # Update the DataFrame with the cumulative ball and strike counts
-#     mydf3.at[index, 'Balls'] = cumulative_balls
-#     mydf3.at[index, 'Strikes'] = cumulative_strikes
+mydf3.to_excel('test.xlsx', index=False)
 
-# print(mydf3[['Strike or Ball', 'ab', 'Balls', 'Strikes']])
+# Now create 'Count' Row by Balls - Strikes
+#mydf3['Count'] = 
 
 
 df = mydf3
