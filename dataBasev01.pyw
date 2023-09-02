@@ -396,10 +396,11 @@ for index, row in mydf3.iterrows():
     mydf3.at[index, 'Balls'] = ball_count
     mydf3.at[index, 'Strikes'] = strike_count
 
-mydf3.to_excel('test.xlsx', index=False)
+# mydf3.to_excel('test.xlsx', index=False)
 
-# Now create 'Count' Row by Balls - Strikes
-#mydf3['Count'] = 
+# Now create 'Count' Row by Balls - Strikes # THIS ISNT WORKING
+mydf3['Count'] = mydf3['Balls'].astype(str) + '-' + mydf3['Strikes'].astype(str)
+
 
 
 df = mydf3
