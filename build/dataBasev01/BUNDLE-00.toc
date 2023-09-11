@@ -1,3 +1,0 @@
-([('databasev01',
-   '/Users/carlycoombs-beno/Desktop/data_base/dist/databasev01',
-   'EXECUTABLE')],)
