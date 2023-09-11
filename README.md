@@ -1,3 +1,4 @@
+# Work in progress:
 # Data Base
 ## A Data Entry tool that makes the transition from charting to analytics in the world of baseball infinitely quicker and easier
 ## shows you trend analysis, is their strike % going up or down. This is the code for the app itself and some of the basic pandas data cleaning that goes in behind the scenes. 
