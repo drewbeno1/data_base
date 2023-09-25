@@ -153,7 +153,7 @@ name_list = ['Andrew Armstrong', 'Nate Baranski', 'Kolby Barrow', 'Mike Cacioppo
              'Travis Peden', 'Kaden Peifer', 'Zach Steen', 'Xander Velez', 'Matt Vernieri', 'Brian Walsh',
              'Owen Wilhide', 'Christian Zito', 'Will Dean', 'Scott Gilbert', 'Mason Keene', 'James Scott', 'Mike Standen']
 pitch_result_list = ["Ball", "Strike looking", "Strike swinging", "Foul Ball", "Strikeout looking", "Strikeout swinging",
-                     "BIP Out", "Single", "Double", "Triple", "HR," "Walk", "HBP", "Drop 3rd & Safe"]
+                     "BIP Out", "Single", "Double", "Triple", "HR", "Walk", "HBP", "Drop 3rd & Safe"]
 pitch_type_list = ['FB', 'CB', 'SL', 'CH', 'Splitter', 'Cutter', 'Knuck', 'Eephus']
 
 frame = ttk.Frame(root)
