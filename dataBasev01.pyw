@@ -236,7 +236,6 @@ load_data()
 root.mainloop()
 
 
-
 #  ####### App closes and data cleaning happens for analysis ##########
 
 # Load and edit the existing Excel workbook
